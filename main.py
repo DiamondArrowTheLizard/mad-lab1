@@ -1,6 +1,7 @@
 import matplotlib.pyplot as plt
 from ucimlrepo import fetch_ucirepo
 
+import crosstabs as ct
 import show_histogram as sh
 
 if __name__ == "__main__":
@@ -31,3 +32,14 @@ if __name__ == "__main__":
 
     plt.tight_layout()
     plt.show()
+
+    categorical_vars = [
+        "fuel-system",
+        "engine-type",
+        "drive-wheels",
+        "body-style",
+        "make",
+    ]
+    
+    crosstab_list = ct.generate_crosstabs(X, categorical_vars)
+    ct.print_crosstabs(crosstab_list)
