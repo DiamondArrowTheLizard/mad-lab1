@@ -1,6 +1,7 @@
 from ucimlrepo import fetch_ucirepo
 
 import crosstabs as ct
+import show_correlation as sc
 
 
 def load_data():
@@ -19,4 +20,6 @@ def load_data():
     ]
     crosstab_list = ct.generate_crosstabs(X, categorical_vars)
 
-    return X, y, crosstab_list
+    correlation_list = sc.generate_correlations(X)
+
+    return X, y, crosstab_list, correlation_list

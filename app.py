@@ -7,11 +7,12 @@ matplotlib.use("TkAgg")
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from matplotlib.figure import Figure
 
+import show_correlation as sc
 import show_histogram as sh
 
 
 class AutomobileApp(tk.Tk):
-    def __init__(self, X, y, crosstab_list):
+    def __init__(self, X, y, crosstab_list, correlation_list):
         super().__init__()
         self.title("Automobile Dataset")
         self.geometry("1100x750")
@@ -19,13 +20,18 @@ class AutomobileApp(tk.Tk):
         self.X = X
         self.y = y
         self.crosstab_list = crosstab_list
+        self.correlation_list = correlation_list
 
         self.notebook = ttk.Notebook(self)
         self.notebook.pack(fill="both", expand=True)
 
         self._build_histogram_tab()
         self._build_crosstab_tab()
+        self._build_correlation_tab()
 
+    # ------------------------------------------------------------------
+    # Histograms
+    # ------------------------------------------------------------------
     def _build_histogram_tab(self):
         frame = ttk.Frame(self.notebook)
         self.notebook.add(frame, text="Histograms")
@@ -87,6 +93,9 @@ class AutomobileApp(tk.Tk):
         canvas.draw()
         canvas.get_tk_widget().pack(fill="both", expand=True)
 
+    # ------------------------------------------------------------------
+    # Crosstabs
+    # ------------------------------------------------------------------
     def _build_crosstab_tab(self):
         frame = ttk.Frame(self.notebook)
         self.notebook.add(frame, text="Crosstabs")
@@ -140,3 +149,47 @@ class AutomobileApp(tk.Tk):
 
         for row_idx, row in df.iterrows():
             self.tree.insert("", "end", values=[row_idx] + list(row))
+
+    # ------------------------------------------------------------------
+    # Correlations
+    # ------------------------------------------------------------------
+    def _build_correlation_tab(self):
+        frame = ttk.Frame(self.notebook)
+        self.notebook.add(frame, text="Correlations")
+
+        top = ttk.Frame(frame)
+        top.pack(fill="x", padx=6, pady=6)
+
+        ttk.Label(top, text="Method:").pack(side="left")
+
+        self.correlation_names = [c.name for c in self.correlation_list]
+        self.corr_combo = ttk.Combobox(
+            top, values=self.correlation_names, state="readonly"
+        )
+        self.corr_combo.current(0)
+        self.corr_combo.pack(side="left", padx=6)
+        self.corr_combo.bind("<<ComboboxSelected>>", self._on_correlation_select)
+
+        self.corr_fig = Figure(figsize=(10, 8), dpi=100)
+        self.corr_canvas = FigureCanvasTkAgg(self.corr_fig, master=frame)
+        self.corr_canvas.get_tk_widget().pack(fill="both", expand=True)
+
+        self._show_correlation(0)
+
+    def _on_correlation_select(self, _event=None):
+        self._show_correlation(self.corr_combo.current())
+
+    def _show_correlation(self, idx: int):
+        self.corr_fig.clear()
+        corr = self.correlation_list[idx]
+        sc.show_correlation(
+            corr.data,
+            self.corr_fig,
+            1,
+            1,
+            1,
+            cmap="coolwarm",
+            title=f"{corr.name.capitalize()} correlation",
+        )
+        self.corr_fig.tight_layout()
+        self.corr_canvas.draw()
