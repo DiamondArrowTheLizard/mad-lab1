@@ -2,3 +2,4 @@ ucimlrepo
 matplotlib
 seaborn
 scipy
+openpyxl
