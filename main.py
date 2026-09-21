@@ -27,7 +27,7 @@ if __name__ == "__main__":
     sh.show_histogram(
         num_of_cylinders, "orange", "black", "fuel type", "types", "amount"
     )
-    sh.show_histogram(fuel_system, "purple", "black", "fuel type", "types", "amount")
+    sh.show_histogram(fuel_system, "purple", "black", "fuel system", "types", "amount")
 
     plt.tight_layout()
     plt.show()
