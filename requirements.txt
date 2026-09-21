@@ -1,3 +1,4 @@
 ucimlrepo
 matplotlib
 seaborn
+scipy
