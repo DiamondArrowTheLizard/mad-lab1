@@ -1,3 +1,4 @@
+import describes as dsc
 from ucimlrepo import fetch_ucirepo
 
 import crosstabs as ct
@@ -19,7 +20,8 @@ def load_data():
         "make",
     ]
     crosstab_list = ct.generate_crosstabs(X, categorical_vars)
+    describe_list = dsc.generate_describes(X)
 
     correlation_list = sc.generate_correlations(X)
 
-    return X, y, crosstab_list, correlation_list
+    return X, y, crosstab_list, correlation_list, describe_list

@@ -1,7 +1,7 @@
 import os
 
 
-def export_all(X, y, crosstab_list, correlation_list, out_dir="data"):
+def export_all(X, y, crosstab_list, correlation_list, describe_list, out_dir="data"):
     xlsx_dir = f"{out_dir}/xlsx"
     csv_dir = f"{out_dir}/csv"
     os.makedirs(out_dir, exist_ok=True)
@@ -14,10 +14,9 @@ def export_all(X, y, crosstab_list, correlation_list, out_dir="data"):
     for crosstab in crosstab_list:
         filename = f"crosstab_{crosstab.var1}_vs_{crosstab.var2}.csv"
         crosstab.data.to_csv(os.path.join(csv_dir, filename))
-        
+
         filename = f"crosstab_{crosstab.var1}_vs_{crosstab.var2}.xlsx"
         crosstab.data.to_excel(os.path.join(xlsx_dir, filename))
-        
 
     for correlation in correlation_list:
         filename = f"correlation_{correlation.name}.csv"
@@ -25,5 +24,14 @@ def export_all(X, y, crosstab_list, correlation_list, out_dir="data"):
 
         filename = f"correlation_{correlation.name}.xlsx"
         correlation.data.to_excel(os.path.join(xlsx_dir, filename))
+
+    for describe in describe_list:
+        df = describe.data.to_frame(name=describe.name)
+
+        filename = f"describe_{describe.name}.csv"
+        df.to_csv(os.path.join(csv_dir, filename))
+
+        filename = f"describe_{describe.name}.xlsx"
+        df.to_excel(os.path.join(xlsx_dir, filename))
 
     return out_dir

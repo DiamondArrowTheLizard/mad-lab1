@@ -5,12 +5,12 @@ import load_data as ld
 import show_correlation as cor
 
 if __name__ == "__main__":
-    X, y, crosstab_list, correlation_list = ld.load_data()
-    
-    out_dir = e.export_all(X, y, crosstab_list, correlation_list)
+    X, y, crosstab_list, correlation_list, describe_list = ld.load_data()
+
+    out_dir = e.export_all(X, y, crosstab_list, correlation_list, describe_list)
     print(f"Exported data to ./{out_dir}/")
 
-    app = a.AutomobileApp(X, y, crosstab_list, correlation_list)
+    app = a.AutomobileApp(X, y, crosstab_list, correlation_list, describe_list)
     app.mainloop()
 
     ct.print_crosstabs(crosstab_list)

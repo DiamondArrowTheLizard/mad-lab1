@@ -12,7 +12,7 @@ import show_histogram as sh
 
 
 class AutomobileApp(tk.Tk):
-    def __init__(self, X, y, crosstab_list, correlation_list):
+    def __init__(self, X, y, crosstab_list, correlation_list, describe_list):
         super().__init__()
         self.title("Automobile Dataset")
         self.geometry("1100x750")
@@ -21,10 +21,12 @@ class AutomobileApp(tk.Tk):
         self.y = y
         self.crosstab_list = crosstab_list
         self.correlation_list = correlation_list
+        self.describe_list = describe_list
 
         self.notebook = ttk.Notebook(self)
         self.notebook.pack(fill="both", expand=True)
 
+        self._build_describe_tab()
         self._build_histogram_tab()
         self._build_crosstab_tab()
         self._build_correlation_tab()
@@ -149,6 +151,66 @@ class AutomobileApp(tk.Tk):
 
         for row_idx, row in df.iterrows():
             self.tree.insert("", "end", values=[row_idx] + list(row))
+
+    # ------------------------------------------------------------------
+    # Describes
+    # ------------------------------------------------------------------
+    def _build_describe_tab(self):
+        frame = ttk.Frame(self.notebook)
+        self.notebook.add(frame, text="Describes")
+
+        top = ttk.Frame(frame)
+        top.pack(fill="x", padx=6, pady=6)
+
+        ttk.Label(top, text="Select variable:").pack(side="left")
+
+        self.describe_names = [d.name for d in self.describe_list]
+        self.desc_combo = ttk.Combobox(
+            top, values=self.describe_names, state="readonly"
+        )
+        self.desc_combo.current(0)
+        self.desc_combo.pack(side="left", padx=6, fill="x", expand=True)
+        self.desc_combo.bind("<<ComboboxSelected>>", self._on_describe_select)
+
+        tree_frame = ttk.Frame(frame)
+        tree_frame.pack(fill="both", expand=True, padx=6, pady=(0, 6))
+
+        self.desc_tree = ttk.Treeview(
+            tree_frame, columns=("stat", "value"), show="headings"
+        )
+        vsb = ttk.Scrollbar(tree_frame, orient="vertical", command=self.desc_tree.yview)
+        hsb = ttk.Scrollbar(
+            tree_frame, orient="horizontal", command=self.desc_tree.xview
+        )
+        self.desc_tree.configure(yscrollcommand=vsb.set, xscrollcommand=hsb.set)
+
+        self.desc_tree.heading("stat", text="statistic")
+        self.desc_tree.heading("value", text="value")
+        self.desc_tree.column("stat", width=120, anchor="w")
+        self.desc_tree.column("value", width=240, anchor="center")
+
+        self.desc_tree.grid(row=0, column=0, sticky="nsew")
+        vsb.grid(row=0, column=1, sticky="ns")
+        hsb.grid(row=1, column=0, sticky="ew")
+        tree_frame.rowconfigure(0, weight=1)
+        tree_frame.columnconfigure(0, weight=1)
+
+        self._show_describe(0)
+
+    def _on_describe_select(self, _event=None):
+        self._show_describe(self.desc_combo.current())
+
+    def _show_describe(self, idx: int):
+        series = self.describe_list[idx].data
+
+        self.desc_tree.delete(*self.desc_tree.get_children())
+
+        for stat_name, value in series.items():
+            if isinstance(value, float):
+                value_str = f"{value:.4g}"
+            else:
+                value_str = str(value)
+            self.desc_tree.insert("", "end", values=[stat_name, value_str])
 
     # ------------------------------------------------------------------
     # Correlations
