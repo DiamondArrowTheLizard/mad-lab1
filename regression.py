@@ -104,6 +104,40 @@ class RegressionModel:
         lines.append(str(self.model.summary()))
         return "\n".join(lines)
 
+    def summary_table(self):
+        rows = []
+        rows.append(("Formula", self.formula))
+        rows.append(("Equation", self.equation()))
+        rows.append(("n observations", str(int(self.model.nobs))))
+
+        if self.kind == "poisson":
+            rows.append(("Pseudo-R2 (McFadden)", f"{self.r_squared():.4f}"))
+            disp = self.dispersion()
+            rows.append(("Dispersion (chi2/df)", f"{disp:.4f}"))
+            if disp > 1.5:
+                rows.append(("WARNING", "Overdispersion detected"))
+        else:
+            rows.append(("R2", f"{self.r_squared():.4f}"))
+            rows.append(("Adjusted R2", f"{self.adjusted_r_squared():.4f}"))
+
+        sig = self.significance()
+        rows.append(("Significance test", sig["test"]))
+        rows.append(("Significance stat", f"{sig['statistic']:.4f}"))
+        if "df" in sig:
+            rows.append(("Significance df", str(sig["df"])))
+        if "df_num" in sig:
+            rows.append(("Significance df (num)", str(sig["df_num"])))
+            rows.append(("Significance df (den)", str(sig["df_den"])))
+        rows.append(("Significance p-value", f"{sig['p_value']:.4g}"))
+
+        rows.append(("", ""))
+        pvalues = self.model.pvalues
+        for name, coef in self.model.params.items():
+            rows.append((f"coef: {name}", f"{coef:.4f}"))
+            rows.append((f"p>|t|: {name}", f"{pvalues[name]:.4g}"))
+
+        return rows
+
 
 def _prepare(df):
     renamed = df.rename(
