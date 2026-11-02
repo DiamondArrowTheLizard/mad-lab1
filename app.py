@@ -1,6 +1,5 @@
 import tkinter as tk
 from tkinter import ttk
-from tkinter.scrolledtext import ScrolledText
 
 import matplotlib
 import pandas as pd
@@ -276,10 +275,27 @@ class AutomobileApp(tk.Tk):
         body = ttk.PanedWindow(frame, orient="vertical")
         body.pack(fill="both", expand=True, padx=6, pady=(0, 6))
 
-        text_frame = ttk.Frame(body)
-        self.reg_text = ScrolledText(text_frame, height=15, wrap="word")
-        self.reg_text.pack(fill="both", expand=True)
-        body.add(text_frame, weight=1)
+        table_frame = ttk.Frame(body)
+        self.reg_tree = ttk.Treeview(
+            table_frame, columns=("stat", "value"), show="headings"
+        )
+        vsb = ttk.Scrollbar(table_frame, orient="vertical", command=self.reg_tree.yview)
+        hsb = ttk.Scrollbar(
+            table_frame, orient="horizontal", command=self.reg_tree.xview
+        )
+        self.reg_tree.configure(yscrollcommand=vsb.set, xscrollcommand=hsb.set)
+
+        self.reg_tree.heading("stat", text="statistic")
+        self.reg_tree.heading("value", text="value")
+        self.reg_tree.column("stat", width=320, anchor="w")
+        self.reg_tree.column("value", width=420, anchor="w")
+
+        self.reg_tree.grid(row=0, column=0, sticky="nsew")
+        vsb.grid(row=0, column=1, sticky="ns")
+        hsb.grid(row=1, column=0, sticky="ew")
+        table_frame.rowconfigure(0, weight=1)
+        table_frame.columnconfigure(0, weight=1)
+        body.add(table_frame, weight=1)
 
         fig_frame = ttk.Frame(body)
         self.reg_fig = Figure(figsize=(10, 5), dpi=100)
@@ -295,8 +311,9 @@ class AutomobileApp(tk.Tk):
     def _show_regression(self, idx):
         rm = self.regression_models[idx]
 
-        self.reg_text.delete("1.0", "end")
-        self.reg_text.insert("1.0", rm.summary_text())
+        self.reg_tree.delete(*self.reg_tree.get_children())
+        for label, value in rm.summary_table():
+            self.reg_tree.insert("", "end", values=[label, value])
 
         sr.show_regression(rm, self.reg_fig)
         self.reg_canvas.draw()
