@@ -23,11 +23,11 @@ def get_correlation_kendall(dataframe):
 
 
 def generate_correlations(dataframe) -> list:
-    numeric_df = dataframe.select_dtypes(include="number").dropna()
+    numeric_df = dataframe.select_dtypes(include="number")
     return [
-        Correlation("pearson", get_correlation_pearson(numeric_df)),
-        Correlation("spearman", get_correlation_spearman(numeric_df)),
-        Correlation("kendall", get_correlation_kendall(numeric_df)),
+        Correlation("pearson", numeric_df.corr(method="pearson")),
+        Correlation("spearman", numeric_df.corr(method="spearman")),
+        Correlation("kendall", numeric_df.corr(method="kendall")),
     ]
 
 

@@ -1,5 +1,6 @@
 import tkinter as tk
 from tkinter import ttk
+from tkinter.scrolledtext import ScrolledText
 
 import matplotlib
 
@@ -9,10 +10,13 @@ from matplotlib.figure import Figure
 
 import show_correlation as sc
 import show_histogram as sh
+import show_regression as sr
 
 
 class AutomobileApp(tk.Tk):
-    def __init__(self, X, y, crosstab_list, correlation_list, describe_list):
+    def __init__(
+        self, X, y, crosstab_list, correlation_list, describe_list, regression_models
+    ):
         super().__init__()
         self.title("Automobile Dataset")
         self.geometry("1100x750")
@@ -22,6 +26,7 @@ class AutomobileApp(tk.Tk):
         self.crosstab_list = crosstab_list
         self.correlation_list = correlation_list
         self.describe_list = describe_list
+        self.regression_models = regression_models
 
         self.notebook = ttk.Notebook(self)
         self.notebook.pack(fill="both", expand=True)
@@ -30,10 +35,8 @@ class AutomobileApp(tk.Tk):
         self._build_histogram_tab()
         self._build_crosstab_tab()
         self._build_correlation_tab()
+        self._build_regression_tab()
 
-    # ------------------------------------------------------------------
-    # Histograms
-    # ------------------------------------------------------------------
     def _build_histogram_tab(self):
         frame = ttk.Frame(self.notebook)
         self.notebook.add(frame, text="Histograms")
@@ -69,24 +72,20 @@ class AutomobileApp(tk.Tk):
             3,
             2,
             2,
-            self.X["num-of-cylinders"],
+            self.X["drive-wheels"],
             "orange",
             "black",
-            "num of cylinders",
+            "drive wheels",
             "types",
             "amount",
         )
+        target_series = (
+            self.y.iloc[:, 0]
+            if hasattr(self.y, "columns") and len(self.y.columns)
+            else self.y
+        )
         sh.show_histogram(
-            fig,
-            4,
-            2,
-            2,
-            self.X["fuel-system"],
-            "purple",
-            "black",
-            "fuel system",
-            "types",
-            "amount",
+            fig, 4, 2, 2, target_series, "green", "black", "price", "price", "amount"
         )
 
         fig.tight_layout()
@@ -95,9 +94,6 @@ class AutomobileApp(tk.Tk):
         canvas.draw()
         canvas.get_tk_widget().pack(fill="both", expand=True)
 
-    # ------------------------------------------------------------------
-    # Crosstabs
-    # ------------------------------------------------------------------
     def _build_crosstab_tab(self):
         frame = ttk.Frame(self.notebook)
         self.notebook.add(frame, text="Crosstabs")
@@ -132,7 +128,7 @@ class AutomobileApp(tk.Tk):
     def _on_crosstab_select(self, _event=None):
         self._show_crosstab(self.combo.current())
 
-    def _show_crosstab(self, idx: int):
+    def _show_crosstab(self, idx):
         df = self.crosstab_list[idx].data
 
         self.tree.delete(*self.tree.get_children())
@@ -152,9 +148,6 @@ class AutomobileApp(tk.Tk):
         for row_idx, row in df.iterrows():
             self.tree.insert("", "end", values=[row_idx] + list(row))
 
-    # ------------------------------------------------------------------
-    # Describes
-    # ------------------------------------------------------------------
     def _build_describe_tab(self):
         frame = ttk.Frame(self.notebook)
         self.notebook.add(frame, text="Describes")
@@ -200,7 +193,7 @@ class AutomobileApp(tk.Tk):
     def _on_describe_select(self, _event=None):
         self._show_describe(self.desc_combo.current())
 
-    def _show_describe(self, idx: int):
+    def _show_describe(self, idx):
         series = self.describe_list[idx].data
 
         self.desc_tree.delete(*self.desc_tree.get_children())
@@ -212,9 +205,6 @@ class AutomobileApp(tk.Tk):
                 value_str = str(value)
             self.desc_tree.insert("", "end", values=[stat_name, value_str])
 
-    # ------------------------------------------------------------------
-    # Correlations
-    # ------------------------------------------------------------------
     def _build_correlation_tab(self):
         frame = ttk.Frame(self.notebook)
         self.notebook.add(frame, text="Correlations")
@@ -241,7 +231,7 @@ class AutomobileApp(tk.Tk):
     def _on_correlation_select(self, _event=None):
         self._show_correlation(self.corr_combo.current())
 
-    def _show_correlation(self, idx: int):
+    def _show_correlation(self, idx):
         self.corr_fig.clear()
         corr = self.correlation_list[idx]
         sc.show_correlation(
@@ -255,3 +245,48 @@ class AutomobileApp(tk.Tk):
         )
         self.corr_fig.tight_layout()
         self.corr_canvas.draw()
+
+    def _build_regression_tab(self):
+        frame = ttk.Frame(self.notebook)
+        self.notebook.add(frame, text="Regression")
+
+        top = ttk.Frame(frame)
+        top.pack(fill="x", padx=6, pady=6)
+
+        ttk.Label(top, text="Model:").pack(side="left")
+
+        self.reg_model_names = [m.name for m in self.regression_models]
+        self.reg_combo = ttk.Combobox(
+            top, values=self.reg_model_names, state="readonly"
+        )
+        self.reg_combo.current(0)
+        self.reg_combo.pack(side="left", padx=6)
+        self.reg_combo.bind("<<ComboboxSelected>>", self._on_regression_select)
+
+        body = ttk.PanedWindow(frame, orient="vertical")
+        body.pack(fill="both", expand=True, padx=6, pady=(0, 6))
+
+        text_frame = ttk.Frame(body)
+        self.reg_text = ScrolledText(text_frame, height=15, wrap="word")
+        self.reg_text.pack(fill="both", expand=True)
+        body.add(text_frame, weight=1)
+
+        fig_frame = ttk.Frame(body)
+        self.reg_fig = Figure(figsize=(10, 5), dpi=100)
+        self.reg_canvas = FigureCanvasTkAgg(self.reg_fig, master=fig_frame)
+        self.reg_canvas.get_tk_widget().pack(fill="both", expand=True)
+        body.add(fig_frame, weight=2)
+
+        self._show_regression(0)
+
+    def _on_regression_select(self, _event=None):
+        self._show_regression(self.reg_combo.current())
+
+    def _show_regression(self, idx):
+        rm = self.regression_models[idx]
+
+        self.reg_text.delete("1.0", "end")
+        self.reg_text.insert("1.0", rm.summary_text())
+
+        sr.show_regression(rm, self.reg_fig)
+        self.reg_canvas.draw()
