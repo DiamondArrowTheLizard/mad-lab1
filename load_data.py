@@ -2,6 +2,7 @@ import numpy as np
 import pandas as pd
 from ucimlrepo import fetch_ucirepo
 
+import anova as anv
 import crosstabs as ct
 import describes as dsc
 import regression as reg
@@ -44,5 +45,14 @@ def load_data():
     describe_list = dsc.generate_describes(combined)
     correlation_list = sc.generate_correlations(combined)
     regression_models = reg.build_models(combined)
+    anova_results = anv.generate_anova(combined)
 
-    return X, y, crosstab_list, correlation_list, describe_list, regression_models
+    return (
+        X,
+        y,
+        crosstab_list,
+        correlation_list,
+        describe_list,
+        regression_models,
+        anova_results,
+    )

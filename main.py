@@ -6,18 +6,36 @@ import regression as reg
 import show_correlation as cor
 
 if __name__ == "__main__":
-    X, y, crosstab_list, correlation_list, describe_list, regression_models = (
-        ld.load_data()
-    )
+    (
+        X,
+        y,
+        crosstab_list,
+        correlation_list,
+        describe_list,
+        regression_models,
+        anova_results,
+    ) = ld.load_data()
 
     out_dir = e.export_all(
-        X, y, crosstab_list, correlation_list, describe_list, regression_models
+        X,
+        y,
+        crosstab_list,
+        correlation_list,
+        describe_list,
+        regression_models,
+        anova_results,
     )
     print(f"Exported data to ./{out_dir}/")
     print(reg.compare_models(regression_models))
 
     application = a.AutomobileApp(
-        X, y, crosstab_list, correlation_list, describe_list, regression_models
+        X,
+        y,
+        crosstab_list,
+        correlation_list,
+        describe_list,
+        regression_models,
+        anova_results,
     )
     application.mainloop()
 

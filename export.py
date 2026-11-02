@@ -1,5 +1,13 @@
 import os
 
+import pandas as pd
+
+
+def _slug(value):
+    return "".join(
+        ch if ch.isalnum() or ch in "-_" else "_" for ch in str(value)
+    ).strip("_")
+
 
 def export_all(
     X,
@@ -8,6 +16,7 @@ def export_all(
     correlation_list,
     describe_list,
     regression_models,
+    anova_results,
     out_dir="data",
 ):
     xlsx_dir = f"{out_dir}/xlsx"
@@ -53,6 +62,30 @@ def export_all(
         filename = f"regression_{reg_model.name.lower()}_summary.txt"
         with open(os.path.join(reports_dir, filename), "w", encoding="utf-8") as f:
             f.write(reg_model.summary_text())
+
+    for anova in anova_results:
+        combined.append("=" * 80)
+        combined.append(anova.summary_text())
+        combined.append("")
+
+        filename = f"anova_{_slug(anova.name)}.txt"
+        with open(os.path.join(reports_dir, filename), "w", encoding="utf-8") as f:
+            f.write(anova.summary_text())
+
+        for key, value in anova.data.items():
+            if isinstance(value, pd.DataFrame):
+                frame = value
+            elif isinstance(value, dict):
+                frame = pd.DataFrame(value)
+            else:
+                continue
+
+            if frame.empty:
+                continue
+
+            base = f"anova_{_slug(anova.name)}_{_slug(key)}"
+            frame.to_csv(os.path.join(csv_dir, base + ".csv"))
+            frame.to_excel(os.path.join(xlsx_dir, base + ".xlsx"))
 
     with open(
         os.path.join(reports_dir, "regression_report.txt"), "w", encoding="utf-8"

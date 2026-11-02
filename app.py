@@ -3,6 +3,7 @@ from tkinter import ttk
 from tkinter.scrolledtext import ScrolledText
 
 import matplotlib
+import pandas as pd
 
 matplotlib.use("TkAgg")
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
@@ -15,7 +16,14 @@ import show_regression as sr
 
 class AutomobileApp(tk.Tk):
     def __init__(
-        self, X, y, crosstab_list, correlation_list, describe_list, regression_models
+        self,
+        X,
+        y,
+        crosstab_list,
+        correlation_list,
+        describe_list,
+        regression_models,
+        anova_results=None,
     ):
         super().__init__()
         self.title("Automobile Dataset")
@@ -27,6 +35,7 @@ class AutomobileApp(tk.Tk):
         self.correlation_list = correlation_list
         self.describe_list = describe_list
         self.regression_models = regression_models
+        self.anova_results = anova_results or []
 
         self.notebook = ttk.Notebook(self)
         self.notebook.pack(fill="both", expand=True)
@@ -36,6 +45,7 @@ class AutomobileApp(tk.Tk):
         self._build_crosstab_tab()
         self._build_correlation_tab()
         self._build_regression_tab()
+        self._build_anova_tab()
 
     def _build_histogram_tab(self):
         frame = ttk.Frame(self.notebook)
@@ -290,3 +300,109 @@ class AutomobileApp(tk.Tk):
 
         sr.show_regression(rm, self.reg_fig)
         self.reg_canvas.draw()
+
+    def _build_anova_tab(self):
+        frame = ttk.Frame(self.notebook)
+        self.notebook.add(frame, text="ANOVA")
+
+        top = ttk.Frame(frame)
+        top.pack(fill="x", padx=6, pady=6)
+
+        ttk.Label(top, text="Analysis:").pack(side="left")
+
+        self.anova_names = (
+            [r.name for r in self.anova_results]
+            if self.anova_results
+            else ["No ANOVA results"]
+        )
+        self.anova_combo = ttk.Combobox(top, values=self.anova_names, state="readonly")
+        self.anova_combo.current(0)
+        self.anova_combo.pack(side="left", padx=6, fill="x", expand=True)
+        self.anova_combo.bind("<<ComboboxSelected>>", self._on_anova_select)
+
+        paned = ttk.PanedWindow(frame, orient="vertical")
+        paned.pack(fill="both", expand=True, padx=6, pady=(0, 6))
+
+        text_frame = ttk.LabelFrame(paned, text="Summary")
+        self.anova_text = ScrolledText(text_frame, height=7, wrap="word")
+        self.anova_text.pack(fill="both", expand=True)
+        paned.add(text_frame, weight=1)
+
+        self.anova_tables_frame = ttk.Frame(paned)
+        paned.add(self.anova_tables_frame, weight=3)
+
+        self._show_anova(0)
+
+    def _on_anova_select(self, _event=None):
+        self._show_anova(self.anova_combo.current())
+
+    def _show_anova(self, idx):
+        self.anova_text.delete("1.0", "end")
+        if not self.anova_results:
+            self.anova_text.insert("1.0", "No ANOVA results")
+            self._render_anova_tables(None)
+            return
+        result = self.anova_results[idx]
+        self.anova_text.insert("1.0", result.summary_text())
+        self._render_anova_tables(result)
+
+    def _render_anova_tables(self, anova_result):
+        for widget in self.anova_tables_frame.winfo_children():
+            widget.destroy()
+
+        notebook = ttk.Notebook(self.anova_tables_frame)
+        notebook.pack(fill="both", expand=True)
+
+        if anova_result is None:
+            ttk.Label(notebook, text="No tables available").pack()
+            return
+
+        tables = []
+        if "groups" in anova_result.data:
+            groups_df = pd.DataFrame(anova_result.data["groups"])
+            if not groups_df.empty:
+                tables.append(("Group descriptives", groups_df))
+
+        if "anova_table" in anova_result.data:
+            at = anova_result.data["anova_table"]
+            if isinstance(at, pd.DataFrame) and not at.empty:
+                tables.append(("ANOVA table", at))
+
+        if not tables:
+            ttk.Label(notebook, text="No tables available").pack()
+            return
+
+        for name, df in tables:
+            tab = ttk.Frame(notebook)
+            notebook.add(tab, text=name)
+
+            tree = ttk.Treeview(tab, show="headings")
+            vsb = ttk.Scrollbar(tab, orient="vertical", command=tree.yview)
+            hsb = ttk.Scrollbar(tab, orient="horizontal", command=tree.xview)
+            tree.configure(yscrollcommand=vsb.set, xscrollcommand=hsb.set)
+
+            tree.grid(row=0, column=0, sticky="nsew")
+            vsb.grid(row=0, column=1, sticky="ns")
+            hsb.grid(row=1, column=0, sticky="ew")
+            tab.rowconfigure(0, weight=1)
+            tab.columnconfigure(0, weight=1)
+
+            tree.delete(*tree.get_children())
+            tree["columns"] = ["index"] + [str(c) for c in df.columns]
+            tree["show"] = "headings"
+
+            tree.heading("index", text=df.index.name or "index")
+            tree.column("index", width=140, anchor="w")
+
+            for col in df.columns:
+                tree.heading(str(col), text=str(col))
+                tree.column(str(col), width=100, anchor="center")
+
+            for idx, row in df.iterrows():
+                vals = [idx]
+                for v in row:
+                    if isinstance(v, float):
+                        vals.append(f"{v:.4f}")
+                    else:
+                        vals.append(str(v))
+                tree.insert("", "end", values=vals)
